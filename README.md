@@ -1,4 +1,4 @@
-# My TODO App
+# KANBAN TODO App
 
 Ứng dụng quản lý công việc với FastAPI 
 
