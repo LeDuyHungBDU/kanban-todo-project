@@ -1,6 +1,6 @@
 # KANBAN TODO App
 
-Ứng dụng quản lý công việc với FastAPI 
+Ứng dụng quản lý công việc với FastAPI và PostgresDB
 
 ## Tính năng
 - ✅ CRUD operations cho tasks
