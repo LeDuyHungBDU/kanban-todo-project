@@ -37,7 +37,7 @@ class BoardResponse(BoardBase):
     tasks_count: Optional[int] = 0
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class BoardWithTasks(BoardResponse):
     tasks: List['TaskResponse'] = []

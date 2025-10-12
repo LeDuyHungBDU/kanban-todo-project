@@ -1,155 +1,159 @@
-from fastapi import APIRouter, HTTPException, status, Query
+from fastapi import APIRouter, HTTPException, status, Query, Depends
+from sqlalchemy.orm import Session
 from typing import List, Optional
+
 from app.schemas.task import TaskCreate, TaskResponse, TaskUpdate, TaskMove, TaskAssign
-from app.models.mock_data import (
-    get_tasks_by_board, get_task_by_id, create_task, 
-    update_task, delete_task, move_task, search_tasks,
-    get_board_by_id
-)
+from app.database import get_db, task_repository, board_repository, user_repository
+from app.database.models import StatusEnum
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 @router.get("/", response_model=List[TaskResponse])
 def get_tasks(
     board_id: int = Query(..., description="ID của board"),
-    status: Optional[str] = Query(None, description="Lọc theo status"),
-    priority: Optional[str] = Query(None, description="Lọc theo priority"),
-    assigned_to: Optional[int] = Query(None, description="Lọc theo user được gán")
+    status: Optional[str] = Query(None, description="Filter theo status"),
+    priority: Optional[str] = Query(None, description="Filter theo priority"),
+    assigned_to: Optional[int] = Query(None, description="Filter theo assigned user"),
+    db: Session = Depends(get_db)
 ):
-    """Lấy danh sách tasks theo board với các filter options"""
-    # Kiểm tra board có tồn tại không
-    board = get_board_by_id(board_id)
+    """Lấy tasks với filters"""
+    # Kiểm tra board tồn tại
+    board = board_repository.get(db, board_id)
     if not board:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Board không tồn tại"
         )
     
-    tasks = get_tasks_by_board(board_id, status, priority)
+    # Get tasks với filters
+    if status:
+        try:
+            status_enum = StatusEnum(status)
+            tasks = task_repository.get_by_status(db, board_id, status_enum)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Status không hợp lệ: {status}"
+            )
+    else:
+        tasks = task_repository.get_by_board(db, board_id)
     
-    # Filter theo assigned_to nếu có
+    # Apply additional filters
+    if priority:
+        tasks = [task for task in tasks if task.priority.value == priority]
+    
     if assigned_to is not None:
-        tasks = [task for task in tasks if task["assigned_to"] == assigned_to]
+        tasks = [task for task in tasks if task.assigned_to == assigned_to]
     
-    return [TaskResponse(**task) for task in tasks]
+    return [TaskResponse.from_orm(task) for task in tasks]
 
 @router.post("/", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
-def create_new_task(task_data: TaskCreate):
+def create_task(task_data: TaskCreate, db: Session = Depends(get_db)):
     """Tạo task mới"""
-    # Kiểm tra board có tồn tại không
-    board = get_board_by_id(task_data.board_id)
+    # Kiểm tra board tồn tại
+    board = board_repository.get(db, task_data.board_id)
     if not board:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Board không tồn tại"
         )
     
+    # Tính position cho task mới
+    existing_tasks = task_repository.get_by_status(db, task_data.board_id, task_data.status)
     task_dict = task_data.dict()
-    task = create_task(task_dict)
-    return TaskResponse(**task)
+    task_dict["position"] = len(existing_tasks)
+    
+    task = task_repository.create(db, obj_in=task_dict)
+    return TaskResponse.from_orm(task)
 
 @router.get("/{task_id}", response_model=TaskResponse)
-def get_task_detail(task_id: int):
-    """Lấy chi tiết task"""
-    task = get_task_by_id(task_id)
+def get_task(task_id: int, db: Session = Depends(get_db)):
+    """Lấy task theo ID"""
+    task = task_repository.get(db, task_id)
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Task không tồn tại"
         )
-    return TaskResponse(**task)
+    return TaskResponse.from_orm(task)
 
 @router.put("/{task_id}", response_model=TaskResponse)
-def update_task_info(task_id: int, task_update: TaskUpdate):
-    """Cập nhật thông tin task"""
-    task = get_task_by_id(task_id)
+def update_task(task_id: int, task_update: TaskUpdate, db: Session = Depends(get_db)):
+    """Cập nhật task"""
+    task = task_repository.get(db, task_id)
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Task không tồn tại"
         )
     
-    update_data = task_update.dict(exclude_unset=True)
-    if update_data:
-        updated_task = update_task(task_id, update_data)
-        return TaskResponse(**updated_task)
-    
-    return TaskResponse(**task)
+    updated_task = task_repository.update(db, db_obj=task, obj_in=task_update)
+    return TaskResponse.from_orm(updated_task)
 
 @router.patch("/{task_id}/move", response_model=TaskResponse)
-def move_task_status(task_id: int, task_move: TaskMove):
-    """Di chuyển task sang status/position mới"""
-    task = get_task_by_id(task_id)
-    if not task:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Task không tồn tại"
-        )
-    
-    moved_task = move_task(task_id, task_move.status.value, task_move.position)
+def move_task(task_id: int, task_move: TaskMove, db: Session = Depends(get_db)):
+    """Di chuyển task"""
+    moved_task = task_repository.move_task(db, task_id, task_move.status, task_move.position)
     if not moved_task:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Không thể di chuyển task"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task không tồn tại"
         )
-    
-    return TaskResponse(**moved_task)
+    return TaskResponse.from_orm(moved_task)
 
 @router.patch("/{task_id}/assign", response_model=TaskResponse)
-def assign_task_to_user(task_id: int, task_assign: TaskAssign):
+def assign_task(task_id: int, task_assign: TaskAssign, db: Session = Depends(get_db)):
     """Gán task cho user"""
-    task = get_task_by_id(task_id)
+    task = task_repository.get(db, task_id)
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Task không tồn tại"
         )
     
-    # Nếu có assigned_to, kiểm tra user có tồn tại không (optional)
-    # if task_assign.assigned_to:
-    #     user = get_user_by_id(task_assign.assigned_to)
-    #     if not user:
-    #         raise HTTPException(400, "User không tồn tại")
+    # Kiểm tra user tồn tại nếu có assigned_to
+    if task_assign.assigned_to:
+        user = user_repository.get(db, task_assign.assigned_to)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User được gán không tồn tại"
+            )
     
-    updated_task = update_task(task_id, {"assigned_to": task_assign.assigned_to})
-    return TaskResponse(**updated_task)
+    updated_task = task_repository.update(db, db_obj=task, obj_in={"assigned_to": task_assign.assigned_to})
+    return TaskResponse.from_orm(updated_task)
 
 @router.delete("/{task_id}")
-def delete_task_by_id(task_id: int):
+def delete_task(task_id: int, db: Session = Depends(get_db)):
     """Xóa task"""
-    task = get_task_by_id(task_id)
+    task = task_repository.get(db, task_id)
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Task không tồn tại"
         )
     
-    if delete_task(task_id):
-        return {
-            "message": "Xóa task thành công",
-            "deleted_task_id": task_id
-        }
-    
-    raise HTTPException(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        detail="Không thể xóa task"
-    )
+    task_repository.delete(db, id=task_id)
+    return {
+        "message": "Xóa task thành công",
+        "deleted_task_id": task_id
+    }
 
 @router.get("/search/", response_model=List[TaskResponse])
-def search_tasks_by_keyword(
+def search_tasks(
     q: str = Query(..., min_length=1, description="Từ khóa tìm kiếm"),
-    board_id: Optional[int] = Query(None, description="Tìm kiếm trong board cụ thể")
+    board_id: Optional[int] = Query(None, description="Tìm trong board cụ thể"),
+    db: Session = Depends(get_db)
 ):
-    """Tìm kiếm tasks theo từ khóa trong title hoặc description"""
+    """Tìm kiếm tasks"""
     if board_id:
-        # Kiểm tra board có tồn tại không
-        board = get_board_by_id(board_id)
+        board = board_repository.get(db, board_id)
         if not board:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Board không tồn tại"
             )
     
-    matching_tasks = search_tasks(q, board_id)
-    return [TaskResponse(**task) for task in matching_tasks]
+    tasks = task_repository.search_tasks(db, q, board_id)
+    return [TaskResponse.from_orm(task) for task in tasks]
 

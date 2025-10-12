@@ -32,7 +32,7 @@ class UserResponse(UserBase):
 
     class Config:
         # Cho phép chuyển đổi từ dict sang Pydantic model
-        orm_mode = True
+        from_attributes = True
 
 class UserUpdate(BaseModel):
     email: Optional[str] = None
