@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import users, boards, tasks
+from app.routers import auth, users, boards, tasks  # Thêm auth router
 from app.database import create_tables
 from app.core.config import settings
 
@@ -12,7 +12,7 @@ create_tables()
 app = FastAPI(
     title=settings.app_name,
     version="1.0.0",
-    description="Kanban TODO API với SQLAlchemy database integration",
+    description="Kanban TODO API với JWT Authentication",
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -20,13 +20,14 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
 )
 
 # Include routers
+app.include_router(auth.router)  # Authentication routes
 app.include_router(users.router)
 app.include_router(boards.router)
 app.include_router(tasks.router)
@@ -36,8 +37,18 @@ def read_root():
     return {
         "message": f"Chào mừng đến với {settings.app_name}!",
         "version": "1.0.0",
-        "database": "SQLAlchemy integrated",
-        "docs_url": "/docs"
+        "features": [
+            "JWT Authentication",
+            "Role-based Authorization", 
+            "Secure Password Hashing",
+            "Protected API Endpoints"
+        ],
+        "docs_url": "/docs",
+        "auth_endpoints": {
+            "register": "/auth/register",
+            "login": "/auth/login",
+            "refresh": "/auth/refresh"
+        }
     }
 
 @app.get("/health")
@@ -45,10 +56,6 @@ def health_check():
     return {
         "status": "healthy",
         "service": settings.app_name,
+        "authentication": "enabled",
         "database": "connected"
     }
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
-

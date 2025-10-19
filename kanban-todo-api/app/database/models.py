@@ -22,7 +22,8 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(50), unique=True, nullable=False, index=True)
     email = Column(String(100), unique=True, nullable=True)
-    password = Column(String(255), nullable=False) #Sẽ hash ở buổi JWT
+    password_hash = Column(String(255), nullable=False)  # Đổi từ 'password' thành 'password_hash'
+    role = Column(String(20), default="user", nullable=False)  # Thêm field role
     full_name = Column(String(100), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

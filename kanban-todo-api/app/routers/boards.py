@@ -4,26 +4,53 @@ from typing import List, Optional
 
 from app.schemas.board import BoardCreate, BoardResponse, BoardUpdate, BoardWithTasks
 from app.schemas.task import TaskResponse
-from app.database import get_db, board_repository, task_repository, user_repository
+from app.database import get_db, board_repository, task_repository
+from app.database.models import User
+from app.core.deps import get_current_user, optional_current_user
 
 router = APIRouter(prefix="/boards", tags=["boards"])
 
 @router.get("/", response_model=List[BoardResponse])
 def get_boards(
-    owner_id: Optional[int] = Query(None, description="Filter theo owner"),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Lấy danh sách boards"""
-    if owner_id:
-        boards = board_repository.get_by_owner(db, owner_id)
+    """Lấy danh sách boards của user hiện tại (admin xem tất cả)"""
+    if current_user.role == "admin":
+        boards = board_repository.get_multi(db)
     else:
-        boards = board_repository.get_multi(db, skip=skip, limit=limit)
+        boards = board_repository.get_by_owner(db, current_user.id)
+    
+    # Pagination
+    paginated_boards = boards[skip:skip+limit]
     
     # Thêm tasks_count
     response_boards = []
-    for board in boards:
+    for board in paginated_boards:
+        board_tasks = task_repository.get_by_board(db, board.id)
+        board_response = BoardResponse.from_orm(board)
+        board_response.tasks_count = len(board_tasks)
+        response_boards.append(board_response)
+    
+    return response_boards
+
+@router.get("/public", response_model=List[BoardResponse])
+def get_public_boards(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    current_user: Optional[User] = Depends(optional_current_user),
+    db: Session = Depends(get_db)
+):
+    """Lấy danh sách public boards (không cần authentication)"""
+    public_boards = board_repository.get_public_boards(db)
+    
+    # Pagination
+    paginated_boards = public_boards[skip:skip+limit]
+    
+    response_boards = []
+    for board in paginated_boards:
         board_tasks = task_repository.get_by_board(db, board.id)
         board_response = BoardResponse.from_orm(board)
         board_response.tasks_count = len(board_tasks)
@@ -34,20 +61,12 @@ def get_boards(
 @router.post("/", response_model=BoardResponse, status_code=status.HTTP_201_CREATED)
 def create_board(
     board_data: BoardCreate,
-    owner_id: int = Query(..., description="ID của user tạo board"),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Tạo board mới"""
-    # Kiểm tra user có tồn tại không
-    owner = user_repository.get(db, owner_id)
-    if not owner:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User không tồn tại"
-        )
-    
     board_dict = board_data.dict()
-    board_dict["owner_id"] = owner_id
+    board_dict["owner_id"] = current_user.id
     
     board = board_repository.create(db, obj_in=board_dict)
     board_response = BoardResponse.from_orm(board)
@@ -55,13 +74,32 @@ def create_board(
     return board_response
 
 @router.get("/{board_id}", response_model=BoardWithTasks)
-def get_board_detail(board_id: int, db: Session = Depends(get_db)):
+def get_board_detail(
+    board_id: int,
+    current_user: Optional[User] = Depends(optional_current_user),
+    db: Session = Depends(get_db)
+):
     """Lấy chi tiết board kèm tasks"""
     board = board_repository.get(db, board_id)
     if not board:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Board không tồn tại"
+        )
+    
+    # Kiểm tra quyền truy cập
+    can_access = (
+        board.is_public or  # Public board
+        (current_user and (
+            board.owner_id == current_user.id or  # Owner
+            current_user.role == "admin"  # Admin
+        ))
+    )
+    
+    if not can_access:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Không có quyền truy cập board này"
         )
     
     tasks = task_repository.get_by_board(db, board_id)
@@ -72,8 +110,13 @@ def get_board_detail(board_id: int, db: Session = Depends(get_db)):
     return board_response
 
 @router.put("/{board_id}", response_model=BoardResponse)
-def update_board(board_id: int, board_update: BoardUpdate, db: Session = Depends(get_db)):
-    """Cập nhật board"""
+def update_board(
+    board_id: int,
+    board_update: BoardUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Cập nhật board (chỉ owner hoặc admin)"""
     board = board_repository.get(db, board_id)
     if not board:
         raise HTTPException(
@@ -81,17 +124,27 @@ def update_board(board_id: int, board_update: BoardUpdate, db: Session = Depends
             detail="Board không tồn tại"
         )
     
+    # Kiểm tra ownership
+    if board.owner_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Không có quyền chỉnh sửa board này"
+        )
+    
     updated_board = board_repository.update(db, db_obj=board, obj_in=board_update)
     
-    # Thêm tasks_count
     tasks = task_repository.get_by_board(db, board_id)
     board_response = BoardResponse.from_orm(updated_board)
     board_response.tasks_count = len(tasks)
     return board_response
 
 @router.delete("/{board_id}")
-def delete_board(board_id: int, db: Session = Depends(get_db)):
-    """Xóa board và tất cả tasks"""
+def delete_board(
+    board_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Xóa board (chỉ owner hoặc admin)"""
     board = board_repository.get(db, board_id)
     if not board:
         raise HTTPException(
@@ -99,15 +152,19 @@ def delete_board(board_id: int, db: Session = Depends(get_db)):
             detail="Board không tồn tại"
         )
     
-    # Đếm tasks sẽ bị xóa
+    # Kiểm tra ownership
+    if board.owner_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Không có quyền xóa board này"
+        )
+    
     tasks = task_repository.get_by_board(db, board_id)
     deleted_tasks_count = len(tasks)
     
-    # Xóa board (cascade sẽ tự động xóa tasks)
     board_repository.delete(db, id=board_id)
     
     return {
-        "message": "Xóa board thành công",
+        "message": f"Đã xóa board '{board.name}'",
         "deleted_tasks_count": deleted_tasks_count
     }
-

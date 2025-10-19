@@ -39,7 +39,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db.commit()
         return obj
 
-# Tạo User repository
+## Tạo User repository
 class UserRepository(BaseRepository[User, dict, dict]):
     def __init__(self):
         super().__init__(User)
@@ -51,12 +51,33 @@ class UserRepository(BaseRepository[User, dict, dict]):
         return db.query(User).filter(User.email == email).first()
     
     def create_user(self, db: Session, user_data: dict) -> User:
-        # Trong thực tế sẽ hash password ở đây
+        # Hash password before creating user
+        if "password" in user_data:
+            user_data["password_hash"] = get_password_hash(user_data.pop("password"))
+        
         db_user = User(**user_data)
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
         return db_user
+
+    def authenticate(self, db: Session, username: str, password: str) -> Optional[User]:
+        """Xác thực user với username và password"""
+        user = self.get_by_username(db, username)
+        if not user:
+            return None
+        
+        if not verify_password(password, user.password_hash):
+            return None
+        
+        return user
+    
+    def update_password(self, db: Session, user: User, new_password: str) -> User:
+        """Cập nhật password cho user"""
+        user.password_hash = get_password_hash(new_password)
+        db.commit()
+        db.refresh(user)
+        return user
         
 # Tạo Board repository
 class BoardRepository(BaseRepository[Board, dict, dict]):
@@ -68,6 +89,10 @@ class BoardRepository(BaseRepository[Board, dict, dict]):
     
     def get_public_boards(self, db: Session) -> List[Board]:
         return db.query(Board).filter(Board.is_public == True).all()
+    
+    def get_all(self, db: Session) -> List[Board]:
+        """Get all boards without any filtering"""
+        return db.query(Board).all()
 
 # Tạo Task repository
 class TaskRepository(BaseRepository[Task, dict, dict]):
