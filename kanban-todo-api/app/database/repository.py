@@ -90,6 +90,12 @@ class BoardRepository(BaseRepository[Board, dict, dict]):
     def get_public_boards(self, db: Session) -> List[Board]:
         return db.query(Board).filter(Board.is_public == True).all()
     
+    def get_accessible_boards(self, db: Session, user_id: int) -> List[Board]:
+        """Get boards that user can access: owned boards + public boards"""
+        return db.query(Board).filter(
+            (Board.owner_id == user_id) | (Board.is_public == True)
+        ).all()
+    
     def get_all(self, db: Session) -> List[Board]:
         """Get all boards without any filtering"""
         return db.query(Board).all()

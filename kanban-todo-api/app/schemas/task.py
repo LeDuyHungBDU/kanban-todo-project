@@ -29,11 +29,14 @@ class TaskBase(BaseModel):
 
 class TaskCreate(TaskBase):
     board_id: int
+    assigned_to: Optional[int] = None
 
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     priority: Optional[PriorityEnum] = None
+    status: Optional[StatusEnum] = None
+    assigned_to: Optional[int] = None
 
     @validator('title')
     def title_validator(cls, v):

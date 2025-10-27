@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>TODO List</title>
+    <style>
+        body {
+            font-family: Arial;
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 { text-align: center; color: #333; }
+        #todoForm {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        #todoInput {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover { background: #45a049; }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            background: white;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        li.done {
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+        .delete-btn {
+            background: #f44336;
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>📝 TODO List</h1>
+    
+    <div id="todoForm">
+        <input type="text" id="todoInput" placeholder="Nhập công việc...">
+        <button id="addBtn">Thêm</button>
+    </div>
+    
+    <ul id="todoList"></ul>
+
+    <script>
+        const todoInput = document.getElementById('todoInput');
+        const addBtn = document.getElementById('addBtn');
+        const todoList = document.getElementById('todoList');
+
+        // Thêm task
+        addBtn.addEventListener('click', function() {
+            const text = todoInput.value.trim();
+            if (text === '') {
+                alert('Vui lòng nhập công việc!');
+                return;
+            }
+            
+            addTask(text);
+            todoInput.value = '';
+        });
+
+        // Enter để thêm
+        todoInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addBtn.click();
+            }
+        });
+
+        // Hàm thêm task vào danh sách
+        function addTask(text) {
+            const li = document.createElement('li');
+            
+            const span = document.createElement('span');
+            span.textContent = text;
+            span.style.cursor = 'pointer';
+            
+            // Click để đánh dấu hoàn thành
+            span.addEventListener('click', function() {
+                li.classList.toggle('done');
+            });
+            
+            // Nút xóa
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Xóa';
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.addEventListener('click', function() {
+                li.remove();
+            });
+            
+            li.appendChild(span);
+            li.appendChild(deleteBtn);
+            todoList.appendChild(li);
+        }
+    </script>
+</body>
+</html>

@@ -23,6 +23,14 @@ def login(
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    
+    # Check if user account is active
+    if not user.is_active:
+        print(f"🚫 Login blocked: User '{user.username}' is inactive")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.",
+        )
 
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(
@@ -48,6 +56,14 @@ def login_json(
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    
+    # Check if user account is active
+    if not user.is_active:
+        print(f"🚫 Login blocked: User '{user.username}' is inactive")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.",
+        )
 
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(
@@ -63,6 +79,8 @@ def login_json(
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register(user_data: UserCreate, db: Session = Depends(get_db)):
     """Register new user"""
+    print(f"📝 Register new user: {user_data.username}, role: {user_data.role}, is_active: {user_data.is_active}")
+    
     # Check if username already exists
     if user_repository.get_by_username(db, user_data.username):
         raise HTTPException(
@@ -82,5 +100,8 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     user_dict["password_hash"] = get_password_hash(user_data.password)
     user_dict.pop("password", None)  # Remove password field
     
+    print(f"📊 User dict to create: {user_dict}")
+    
     user = user_repository.create_user(db, user_dict)
+    print(f"✅ User created with ID: {user.id}, is_active: {user.is_active}")
     return UserResponse.from_orm(user)

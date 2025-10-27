@@ -1,11 +1,8 @@
 from datetime import datetime, timedelta
 from typing import Optional, Union, Any
 from jose import jwt, JWTError
-from passlib.context import CryptContext
+import bcrypt
 from .config import settings
-
-# Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__default_rounds=12)
 
 def create_access_token(
     subject: Union[str, Any], 
@@ -47,14 +44,11 @@ def verify_token(token: str) -> Optional[dict]:
 
 def get_password_hash(password: str) -> str:
     """Hash password với bcrypt"""
-    # Truncate password to 72 bytes if longer (bcrypt limitation)
-    if len(password.encode('utf-8')) > 72:
-        password = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(rounds=12)).decode('utf-8')
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify password với hashed password"""
-    return pwd_context.verify(plain_password, hashed_password)
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
 def create_token_payload(user_id: int, username: str, role: str = "user") -> dict:
     """Tạo payload cho JWT token"""

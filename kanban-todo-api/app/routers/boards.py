@@ -17,21 +17,27 @@ def get_boards(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Lấy danh sách boards của user hiện tại (admin xem tất cả)"""
+    """Lấy danh sách boards của user hiện tại + public boards (admin xem tất cả)"""
     if current_user.role == "admin":
         boards = board_repository.get_multi(db)
     else:
-        boards = board_repository.get_by_owner(db, current_user.id)
+        # Get owned boards + public boards for regular users
+        boards = board_repository.get_accessible_boards(db, current_user.id)
     
     # Pagination
     paginated_boards = boards[skip:skip+limit]
     
-    # Thêm tasks_count
+    # Thêm tasks_count và owner_name
     response_boards = []
     for board in paginated_boards:
         board_tasks = task_repository.get_by_board(db, board.id)
         board_response = BoardResponse.from_orm(board)
         board_response.tasks_count = len(board_tasks)
+        
+        # Add owner name
+        if board.owner:
+            board_response.owner_name = board.owner.full_name or board.owner.username
+        
         response_boards.append(board_response)
     
     return response_boards
@@ -54,6 +60,11 @@ def get_public_boards(
         board_tasks = task_repository.get_by_board(db, board.id)
         board_response = BoardResponse.from_orm(board)
         board_response.tasks_count = len(board_tasks)
+        
+        # Add owner name
+        if board.owner:
+            board_response.owner_name = board.owner.full_name or board.owner.username
+        
         response_boards.append(board_response)
     
     return response_boards
@@ -68,9 +79,16 @@ def create_board(
     board_dict = board_data.dict()
     board_dict["owner_id"] = current_user.id
     
+    print(f"📝 Creating board with data: {board_dict}")
+    print(f"📝 Description value: '{board_dict.get('description')}' (type: {type(board_dict.get('description'))})")
+    
     board = board_repository.create(db, obj_in=board_dict)
+    
+    print(f"✅ Board created with ID: {board.id}, description: '{board.description}'")
+    
     board_response = BoardResponse.from_orm(board)
     board_response.tasks_count = 0
+    board_response.owner_name = current_user.full_name or current_user.username
     return board_response
 
 @router.get("/{board_id}", response_model=BoardWithTasks)
@@ -131,11 +149,21 @@ def update_board(
             detail="Không có quyền chỉnh sửa board này"
         )
     
+    print(f"📝 Updating board {board_id} with data: {board_update.dict(exclude_unset=True)}")
+    print(f"📝 Description value: '{board_update.description}' (type: {type(board_update.description)})")
+    
     updated_board = board_repository.update(db, db_obj=board, obj_in=board_update)
+    
+    print(f"✅ Board updated, new description: '{updated_board.description}'")
     
     tasks = task_repository.get_by_board(db, board_id)
     board_response = BoardResponse.from_orm(updated_board)
     board_response.tasks_count = len(tasks)
+    
+    # Add owner name
+    if updated_board.owner:
+        board_response.owner_name = updated_board.owner.full_name or updated_board.owner.username
+    
     return board_response
 
 @router.delete("/{board_id}")

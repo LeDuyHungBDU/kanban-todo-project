@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>DOM Manipulation</title>
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 8px 16px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        #container {
+            min-height: 200px;
+            border: 2px dashed #ccc;
+            padding: 20px;
+        }
+        .item {
+            background: #e3f2fd;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .item:hover {
+            background: #bbdefb;
+        }
+    </style>
+</head>
+<body>
+    <h1>DOM Manipulation Practice</h1>
+    
+    <div class="controls">
+        <button onclick="addItem()">Thêm Item</button>
+        <button onclick="clearAll()">Xóa Tất Cả</button>
+        <button onclick="changeColors()">Đổi Màu Random</button>
+        <button onclick="countItems()">Đếm Items</button>
+    </div>
+    
+    <div id="container">
+        <p>Click "Thêm Item" để bắt đầu</p>
+    </div>
+
+    <script>
+        const container = document.getElementById('container');
+        let itemCount = 0;
+
+        // Thêm item mới
+        function addItem() {
+            itemCount++;
+            
+            const div = document.createElement('div');
+            div.className = 'item';
+            div.textContent = `Item ${itemCount}`;
+            
+            // Click để xóa item này
+            div.addEventListener('click', function() {
+                if (confirm('Xóa item này?')) {
+                    div.remove();
+                }
+            });
+            
+            container.appendChild(div);
+        }
+
+        // Xóa tất cả
+        function clearAll() {
+            if (confirm('Xóa tất cả items?')) {
+                container.innerHTML = '<p>Đã xóa hết! Click "Thêm Item" để bắt đầu lại.</p>';
+                itemCount = 0;
+            }
+        }
+
+        // Đổi màu random
+        function changeColors() {
+            const items = document.querySelectorAll('.item');
+            items.forEach(item => {
+                const r = Math.floor(Math.random() * 256);
+                const g = Math.floor(Math.random() * 256);
+                const b = Math.floor(Math.random() * 256);
+                item.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+            });
+        }
+
+        // Đếm items
+        function countItems() {
+            const items = document.querySelectorAll('.item');
+            alert(`Hiện có ${items.length} items`);
+        }
+    </script>
+</body>
+</html>

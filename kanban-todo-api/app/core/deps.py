@@ -42,9 +42,10 @@ def get_current_user(
         raise credentials_exception
     
     if not user.is_active:
+        print(f"🚫 Access denied: User '{user.username}' (ID: {user.id}) is inactive")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive user"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên."
         )
     
     return user
@@ -57,8 +58,8 @@ def get_current_active_user(
     """
     if not current_user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive user"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên."
         )
     return current_user
 
@@ -70,15 +71,15 @@ def get_current_admin_user(
     """
     if not current_user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive user"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên."
         )
     
     # Giả sử có field role trong User model (cần thêm vào model)
     if not hasattr(current_user, 'role') or current_user.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions"
+            detail="Bạn không có quyền truy cập. Chỉ admin mới được phép."
         )
     
     return current_user

@@ -1,4 +1,4 @@
-#!/home/admin/workspaces/kanban-todo-project/kanban-todo-api/.venv/bin/python
+#!/home/admin/workspaces/kanban-todo-project/kanban-todo-api/.venv/bin/python3
 import sys
 from watchfiles.cli import cli
 if __name__ == '__main__':

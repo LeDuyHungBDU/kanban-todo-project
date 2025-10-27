@@ -14,6 +14,13 @@ class BoardBase(BaseModel):
         if len(v.strip()) > 100:
             raise ValueError('Tên board không được quá 100 ký tự')
         return v.strip()
+    
+    @validator('description')
+    def description_validator(cls, v):
+        # Allow empty string and None for description
+        if v is not None and v != '':
+            return v.strip()
+        return v
 
 class BoardCreate(BoardBase):
     pass
@@ -28,10 +35,18 @@ class BoardUpdate(BaseModel):
         if v is not None and (not v or len(v.strip()) == 0):
             raise ValueError('Tên board không được để trống')
         return v.strip() if v else v
+    
+    @validator('description')
+    def description_validator(cls, v):
+        # Allow empty string and None for description
+        if v is not None and v != '':
+            return v.strip()
+        return v
 
 class BoardResponse(BoardBase):
     id: int
     owner_id: int
+    owner_name: Optional[str] = None  # Owner's full name or username
     created_at: datetime
     updated_at: datetime
     tasks_count: Optional[int] = 0

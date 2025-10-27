@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - Kanban TODO</title>
+    <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-form">
+            <h1>Kanban TODO</h1>
+            <h2>Đăng nhập</h2>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                
+                <button type="submit" id="loginBtn">Đăng nhập</button>
+                
+                <div id="loginError" class="error-message hidden"></div>
+                <div id="loginLoading" class="loading hidden">Đang đăng nhập...</div>
+            </form>
+            
+            <p>Chưa có tài khoản? <a href="register.html">Đăng ký ngay</a></p>
+            
+            <div class="demo-accounts">
+                <h3>Tài khoản demo:</h3>
+                <p>Admin: admin / admin123</p>
+                <p>User: johndoe / password123</p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/auth.js"></script>
+</body>
+</html>

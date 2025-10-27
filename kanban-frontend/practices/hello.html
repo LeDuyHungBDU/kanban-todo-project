@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>JavaScript Cơ Bản</title>
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+            text-align: center;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #output {
+            margin-top: 20px;
+            font-size: 20px;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <h1>JavaScript Tương Tác</h1>
+    <button id="btn1">Nhấn Tôi</button>
+    <button id="btn2">Đổi Màu</button>
+    <button id="btn3">Đếm Số</button>
+    <div id="output">Kết quả hiển thị ở đây</div>
+
+    <script>
+        // Lấy các phần tử HTML
+        const btn1 = document.getElementById('btn1');
+        const btn2 = document.getElementById('btn2');
+        const btn3 = document.getElementById('btn3');
+        const output = document.getElementById('output');
+        
+        let count = 0;
+
+        // Button 1: Hiển thị thông báo
+        btn1.addEventListener('click', function() {
+            output.textContent = 'Bạn đã nhấn nút 1!';
+        });
+
+        // Button 2: Đổi màu chữ
+        btn2.addEventListener('click', function() {
+            const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12'];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            output.style.color = randomColor;
+            output.textContent = 'Màu đã đổi!';
+        });
+
+        // Button 3: Đếm số
+        btn3.addEventListener('click', function() {
+            count++;
+            output.textContent = 'Số lần nhấn: ' + count;
+        });
+    </script>
+</body>
+</html>

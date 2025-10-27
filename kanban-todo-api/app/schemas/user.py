@@ -19,6 +19,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
     role: Optional[str] = "user"  # Thêm role với default "user"
+    is_active: Optional[bool] = True  # Mặc định user được tạo là active
 
     @validator('password')
     def password_validator(cls, v):
@@ -50,6 +51,7 @@ class UserUpdate(BaseModel):
     email: Optional[str] = None
     full_name: Optional[str] = None
     role: Optional[str] = None  # Chỉ admin mới được update role
+    is_active: Optional[bool] = None  # Admin có thể activate/deactivate user
 
     @validator('role')
     def role_validator(cls, v):

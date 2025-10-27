@@ -62,17 +62,19 @@ def change_current_user_password(
     
     return {"message": "Đổi mật khẩu thành công"}
 
-# Admin-only endpoints
+# User list endpoint (accessible by all authenticated users for assignee dropdown)
 @router.get("/", response_model=List[UserResponse])
 def read_all_users(
     skip: int = 0,
     limit: int = 100,
-    admin_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Lấy danh sách tất cả users (Admin only)"""
+    """Lấy danh sách tất cả users (for assignee dropdown)"""
     users = user_repository.get_multi(db, skip=skip, limit=limit)
     return [UserResponse.from_orm(user) for user in users]
+
+# Admin-only endpoints
 
 @router.get("/{user_id}", response_model=UserResponse)
 def read_user(
@@ -97,12 +99,16 @@ def update_user(
     db: Session = Depends(get_db)
 ):
     """Cập nhật user bất kỳ (Admin only)"""
+    print(f"👤 Updating user {user_id} with data: {user_update.dict(exclude_unset=True)}")
+    
     user = user_repository.get(db, user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User không tồn tại"
         )
+    
+    print(f"📊 Current user status - is_active: {user.is_active}")
     
     # Kiểm tra email conflict
     if user_update.email and user_update.email != user.email:
@@ -114,6 +120,7 @@ def update_user(
             )
     
     updated_user = user_repository.update(db, db_obj=user, obj_in=user_update)
+    print(f"✅ User updated - is_active: {updated_user.is_active}, role: {updated_user.role}")
     return UserResponse.from_orm(updated_user)
 
 @router.delete("/{user_id}")

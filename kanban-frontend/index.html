@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanban Board - TODO App</title>
+    <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <!-- Header/Navigation -->
+    <header class="header">
+        <div class="header-content">
+            <h1>Kanban TODO</h1>
+            <div class="user-info">
+                <span>Xin chào, <span id="currentUser">User</span></span>
+                <button id="manageUsersBtn" class="btn btn-outline hidden">👥 Manage Users</button>
+                <button id="profileBtn" class="btn btn-outline">Profile</button>
+                <button id="logoutBtn" class="btn btn-outline">Đăng xuất</button>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Board Controls -->
+        <div class="board-controls">
+            <button id="newBoardBtn" class="btn btn-primary">+ Tạo Board Mới</button>
+            <div class="board-selector">
+                <label for="boardSelect">Chọn Board:</label>
+                <select id="boardSelect">
+                    <option value="">-- Chọn board --</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-state">
+            <p>Đang tải dữ liệu...</p>
+        </div>
+        
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state hidden">
+            <h2>Chưa có board nào</h2>
+            <p>Tạo board đầu tiên để bắt đầu quản lý công việc</p>
+            <button class="btn btn-primary" onclick="createNewBoard()">Tạo Board Đầu Tiên</button>
+        </div>
+        
+        <!-- Kanban Board -->
+        <div id="kanbanBoard" class="kanban-board hidden">
+            <div class="board-header">
+                <div class="board-info">
+                    <div class="board-title-row">
+                        <h2 id="boardTitle">Board Title</h2>
+                        <span id="boardVisibilityBadge" class="board-visibility-badge">Public</span>
+                    </div>
+                    <p id="boardDescriptionDisplay" class="board-description"></p>
+                </div>
+                <div class="board-actions">
+                    <button id="editBoardBtn" class="btn btn-secondary">Chỉnh sửa</button>
+                    <button id="deleteBoardBtn" class="btn btn-danger">Xóa Board</button>
+                </div>
+            </div>
+            
+            <div class="kanban-columns">
+                <!-- TODO Column -->
+                <div class="kanban-column" data-status="todo">
+                    <div class="column-header">
+                        <h3>TODO</h3>
+                        <span class="task-count" id="todoCount">0</span>
+                        <button class="btn btn-small btn-primary" onclick="addNewTask('todo')">+</button>
+                    </div>
+                    <div class="task-list" id="todoTasks"></div>
+                </div>
+                
+                <!-- IN PROGRESS Column -->
+                <div class="kanban-column" data-status="in_progress">
+                    <div class="column-header">
+                        <h3>IN PROGRESS</h3>
+                        <span class="task-count" id="inProgressCount">0</span>
+                        <button class="btn btn-small btn-primary" onclick="addNewTask('in_progress')">+</button>
+                    </div>
+                    <div class="task-list" id="inProgressTasks"></div>
+                </div>
+                
+                <!-- DONE Column -->
+                <div class="kanban-column" data-status="done">
+                    <div class="column-header">
+                        <h3>DONE</h3>
+                        <span class="task-count" id="doneCount">0</span>
+                        <button class="btn btn-small btn-primary" onclick="addNewTask('done')">+</button>
+                    </div>
+                    <div class="task-list" id="doneTasks"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Modals -->
+    <!-- Task Modal -->
+    <div id="taskModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close" onclick="closeTaskModal()">&times;</span>
+            <h2 id="taskModalTitle">Thêm Task Mới</h2>
+            
+            <form id="taskForm">
+                <input type="hidden" id="taskId">
+                <input type="hidden" id="taskStatus">
+                
+                <div class="form-group">
+                    <label for="taskTitle">Tiêu đề:</label>
+                    <input type="text" id="taskTitle" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="taskDescription">Mô tả:</label>
+                    <textarea id="taskDescription" rows="3"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="taskPriority">Độ ưu tiên:</label>
+                    <select id="taskPriority">
+                        <option value="low">Thấp</option>
+                        <option value="medium" selected>Trung bình</option>
+                        <option value="high">Cao</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="taskAssignee">Gán cho:</label>
+                    <select id="taskAssignee">
+                        <option value="">-- Chưa gán --</option>
+                    </select>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Lưu</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeTaskModal()">Hủy</button>
+                </div>
+                
+                <div id="taskError" class="error-message"></div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Board Modal -->
+    <div id="boardModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close" onclick="closeBoardModal()">&times;</span>
+            <h2 id="boardModalTitle">Tạo Board Mới</h2>
+            
+            <form id="boardForm">
+                <input type="hidden" id="boardId">
+                
+                <div class="form-group">
+                    <label for="boardName">Tên Board:</label>
+                    <input type="text" id="boardName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="boardDescriptionInput">Mô tả:</label>
+                    <textarea id="boardDescriptionInput" rows="3"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="boardIsPublic">
+                        Board công khai
+                    </label>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Lưu</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeBoardModal()">Hủy</button>
+                </div>
+                
+                <div id="boardError" class="error-message"></div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Confirm Delete Modal -->
+    <div id="confirmModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Xác nhận</h2>
+            <p id="confirmMessage">Bạn có chắc chắn muốn thực hiện hành động này?</p>
+            <div class="form-actions">
+                <button id="confirmYes" class="btn btn-danger">Đồng ý</button>
+                <button id="confirmNo" class="btn btn-secondary">Hủy</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close" onclick="closeProfileModal()">&times;</span>
+            <h2>Thông tin cá nhân</h2>
+
+            <form id="profileForm">
+                <div class="form-group">
+                    <label for="profileUsername">Username:</label>
+                    <input type="text" id="profileUsername" readonly disabled>
+                </div>
+
+                <div class="form-group">
+                    <label for="profileEmail">Email:</label>
+                    <input type="email" id="profileEmail">
+                </div>
+
+                <div class="form-group">
+                    <label for="profileFullName">Họ tên:</label>
+                    <input type="text" id="profileFullName">
+                </div>
+
+                <div class="form-group">
+                    <label for="profileRole">Vai trò:</label>
+                    <input type="text" id="profileRole" readonly disabled>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Cập nhật</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeProfileModal()">Hủy</button>
+                </div>
+
+                <div id="profileError" class="error-message"></div>
+                <div id="profileSuccess" class="success-message hidden"></div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="assets/js/store.js"></script>
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/auth.js"></script>
+    <script src="assets/js/kanban.js"></script>
+    <script type="module" src="assets/js/app.js"></script>
+</body>
+</html>
