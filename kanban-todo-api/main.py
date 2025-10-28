@@ -23,7 +23,10 @@ app.add_middleware(
     allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
+    # Allow all Vercel preview deployments with regex
+    allow_origin_regex=r"https://.*\.vercel\.app"
+    
 )
 
 # Include routers

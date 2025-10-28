@@ -11,12 +11,17 @@ class Settings(BaseSettings):
 
     # CORS Settings
     cors_origins: List[str] = [
+        # Local development
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:5500",
         "http://127.0.0.1:5500",
         "http://localhost:8080",
-        "http://127.0.0.1:8080"
+        "http://127.0.0.1:8080",
+        # Production - Vercel
+        "https://kanban-todo-project.vercel.app",
+        # Note: All Vercel preview deployments (*.vercel.app) 
+        # are handled by allow_origin_regex in main.py
     ]
 
     # JWT Settings
