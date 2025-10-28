@@ -1197,27 +1197,54 @@ window.closeTaskModal = closeTaskModal;
 window.closeBoardModal = closeBoardModal;
 window.closeProfileModal = closeProfileModal;
 
-// Initialize app when DOM is ready
-function initializeApp() {
-  console.log('🚀 Initializing app...');
+// Initialize app when DOM and config are ready
+let configReady = false;
+let domReady = false;
+
+function tryInitializeApp() {
+  console.log('🚀 Checking initialization conditions...', { configReady, domReady });
   
-  // Simple approach - just try to create app directly
+  if (!configReady || !domReady) {
+    console.log('⏳ Waiting for config and DOM...');
+    return;
+  }
+  
+  // Both config and DOM are ready
   try {
     if (window.store && window.actions && window.actions.loadBoards) {
-      console.log('✅ Store is ready, creating app...');
+      console.log('✅ Config loaded, store ready, creating app...');
+      console.log('🔧 API Config:', { API_URL: window.ENV?.API_URL });
       window.app = new KanbanApp();
     } else {
       console.log('❌ Store not ready, retrying in 100ms...');
-      setTimeout(initializeApp, 100);
+      setTimeout(tryInitializeApp, 100);
     }
   } catch (error) {
     console.error('❌ Error initializing app:', error);
   }
 }
 
+// Wait for config loaded
+window.addEventListener('configLoaded', () => {
+  console.log('✅ Config loaded event received');
+  configReady = true;
+  tryInitializeApp();
+});
+
+// Wait for DOM ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeApp);
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('✅ DOM loaded');
+    domReady = true;
+    tryInitializeApp();
+  });
 } else {
-  // DOM is already loaded
-  initializeApp();
+  console.log('✅ DOM already loaded');
+  domReady = true;
+  // Config might already be loaded too
+  if (window.ENV && window.ENV.API_URL) {
+    console.log('✅ Config already loaded');
+    configReady = true;
+  }
+  tryInitializeApp();
 }

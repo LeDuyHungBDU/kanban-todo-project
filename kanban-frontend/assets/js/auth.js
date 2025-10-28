@@ -67,10 +67,14 @@ class AuthManager {
 
             // Call login API
             const response = await api.login(username, password);
+            console.log('🔐 Login response:', response);
+            console.log('👤 User info:', response.user);
+            console.log('👤 User role:', response.user?.role);
             
             // Store token and user info
             api.setToken(response.access_token);
             localStorage.setItem('user_info', JSON.stringify(response.user));
+            console.log('💾 Stored user info:', localStorage.getItem('user_info'));
             
             // Redirect to dashboard
             window.location.href = 'index.html';
@@ -243,7 +247,36 @@ class AuthManager {
     }
 }
 
-// Initialize authentication when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize authentication when DOM and config are loaded
+let authConfigReady = false;
+let authDomReady = false;
+
+function initializeAuth() {
+    if (!authConfigReady || !authDomReady) {
+        return;
+    }
+    console.log('🔐 Initializing AuthManager with config:', { API_URL: window.ENV?.API_URL });
     window.authManager = new AuthManager();
+}
+
+// Wait for config
+window.addEventListener('configLoaded', () => {
+    console.log('✅ Config loaded for auth');
+    authConfigReady = true;
+    initializeAuth();
 });
+
+// Wait for DOM
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        authDomReady = true;
+        initializeAuth();
+    });
+} else {
+    authDomReady = true;
+    // Check if config already loaded
+    if (window.ENV && window.ENV.API_URL) {
+        authConfigReady = true;
+    }
+    initializeAuth();
+}

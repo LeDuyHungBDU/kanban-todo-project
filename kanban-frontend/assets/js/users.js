@@ -422,8 +422,37 @@ function closeEditModal() {
 }
 
 // Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 DOM loaded, initializing User Management...');
+// Initialize User Management when DOM and config are loaded
+let usersConfigReady = false;
+let usersDomReady = false;
+
+function initializeUserManagement() {
+    if (!usersConfigReady || !usersDomReady) {
+        return;
+    }
+    console.log('🚀 Config and DOM loaded, initializing User Management...', { API_URL: window.ENV?.API_URL });
     window.userManagement = new UserManagement();
+}
+
+// Wait for config
+window.addEventListener('configLoaded', () => {
+    console.log('✅ Config loaded for users');
+    usersConfigReady = true;
+    initializeUserManagement();
 });
+
+// Wait for DOM
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        usersDomReady = true;
+        initializeUserManagement();
+    });
+} else {
+    usersDomReady = true;
+    // Check if config already loaded
+    if (window.ENV && window.ENV.API_URL) {
+        usersConfigReady = true;
+    }
+    initializeUserManagement();
+}
 

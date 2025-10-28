@@ -5,8 +5,8 @@
 // Function to get API config (supports async loading)
 function getAPIConfig() {
     return {
-        baseURL: window.ENV?.API_URL,
-        timeout: window.ENV?.API_TIMEOUT || 10000,
+        baseURL: "https://kanban-todo-project.onrender.com",
+        timeout:  10000,
     };
 }
 
