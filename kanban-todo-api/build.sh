@@ -11,3 +11,4 @@ alembic upgrade head
 
 echo "Build completed successfully!"
 
+

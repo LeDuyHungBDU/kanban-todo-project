@@ -1,13 +1,38 @@
 // API Configuration
-const API_CONFIG = {
-    baseURL: 'http://localhost:8000',
-    timeout: 10000,
-};
+// NOTE: Configuration is loaded from config.json via config-loader.js
+// Make sure to load config-loader.js before this file in your HTML
+
+// Function to get API config (supports async loading)
+function getAPIConfig() {
+    return {
+        baseURL: window.ENV?.API_URL,
+        timeout: window.ENV?.API_TIMEOUT || 10000,
+    };
+}
+
+// Initial config
+const API_CONFIG = getAPIConfig();
+
+// Update config when it's loaded
+window.addEventListener('configLoaded', () => {
+    const newConfig = getAPIConfig();
+    API_CONFIG.baseURL = newConfig.baseURL;
+    API_CONFIG.timeout = newConfig.timeout;
+    
+    if (window.ENV?.DEBUG) {
+        console.log('[API] Config updated:', API_CONFIG);
+    }
+});
 
 // API Helper Functions
 class APIClient {
     constructor() {
-        this.baseURL = API_CONFIG.baseURL;
+        // Don't cache baseURL - always get it from API_CONFIG for dynamic updates
+    }
+
+    // Get current base URL (always fresh from config)
+    getBaseURL() {
+        return API_CONFIG.baseURL;
     }
 
     // Get authentication token from localStorage
@@ -43,7 +68,7 @@ class APIClient {
 
     // Generic fetch wrapper
     async request(endpoint, options = {}) {
-        const url = `${this.baseURL}${endpoint}`;
+        const url = `${this.getBaseURL()}${endpoint}`;
         const config = {
             headers: this.getHeaders(options.requireAuth !== false),
             ...options,

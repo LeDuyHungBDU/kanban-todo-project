@@ -1,0 +1,13 @@
+{
+  "development": {
+    "API_URL": "http://localhost:8000",
+    "API_TIMEOUT": 10000,
+    "DEBUG": true
+  },
+  "production": {
+    "API_URL": "https://kanban-todo-project.onrender.com",
+    "API_TIMEOUT": 10000,
+    "DEBUG": false
+  }
+}
+
