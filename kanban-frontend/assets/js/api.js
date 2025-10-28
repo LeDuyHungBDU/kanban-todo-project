@@ -117,7 +117,9 @@ class APIClient {
     }
 
     async getCurrentUser() {
-        return this.request('/users/me');
+        const user = await this.request('/users/me');
+        console.log('📥 getCurrentUser response:', user);
+        return user;
     }
 
     async updateCurrentUser(userData) {

@@ -28,18 +28,25 @@ class UserManagement {
     async checkAdminAccess() {
         const token = api.getToken();
         if (!token) {
+            console.log('❌ No token found');
             window.location.href = 'login.html';
             return false;
         }
 
         try {
+            console.log('🔍 Fetching current user...');
             const user = await api.getCurrentUser();
+            console.log('👤 Current user:', user);
+            console.log('👤 User role:', user.role);
+            
             this.currentUser = user;
             
             if (user.role !== 'admin') {
+                console.log('❌ User is not admin, role:', user.role);
                 return false;
             }
             
+            console.log('✅ User is admin');
             return true;
         } catch (error) {
             console.error('❌ Error checking admin access:', error);
