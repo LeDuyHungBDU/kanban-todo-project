@@ -20,13 +20,13 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=["*"],  # Allow all origins for debugging
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     # Allow all Vercel preview deployments with regex
     allow_origin_regex=r"https://.*\.vercel\.app"
-    
+
 )
 
 # Include routers
