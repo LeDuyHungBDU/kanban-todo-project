@@ -1,38 +1,25 @@
-// API Configuration
-// NOTE: Configuration is loaded from config.json via config-loader.js
-// Make sure to load config-loader.js before this file in your HTML
-
-// Function to get API config (supports async loading)
-function getAPIConfig() {
-    return {
-        baseURL: "https://kanban-todo-project.onrender.com",
-        timeout:  10000,
-    };
+// Wait for config to be loaded
+function waitForConfig() {
+    return new Promise((resolve) => {
+        if (window.ENV && window.ENV.API_URL) {
+            resolve();
+        } else {
+            window.addEventListener('configLoaded', () => resolve(), { once: true });
+        }
+    });
 }
-
-// Initial config
-const API_CONFIG = getAPIConfig();
-
-// Update config when it's loaded
-window.addEventListener('configLoaded', () => {
-    const newConfig = getAPIConfig();
-    API_CONFIG.baseURL = newConfig.baseURL;
-    API_CONFIG.timeout = newConfig.timeout;
-    
-    if (window.ENV?.DEBUG) {
-        console.log('[API] Config updated:', API_CONFIG);
-    }
-});
 
 // API Helper Functions
 class APIClient {
     constructor() {
-        // Don't cache baseURL - always get it from API_CONFIG for dynamic updates
+        this.baseURL = null;
+        this.timeout = 10000;
+        this.init();
     }
 
-    // Get current base URL (always fresh from config)
-    getBaseURL() {
-        return API_CONFIG.baseURL;
+    async init() {
+        await waitForConfig();
+        this.baseURL = window.ENV.API_URL;
     }
 
     // Get authentication token from localStorage
@@ -68,7 +55,10 @@ class APIClient {
 
     // Generic fetch wrapper
     async request(endpoint, options = {}) {
-        const url = `${this.getBaseURL()}${endpoint}`;
+        // Ensure config is loaded
+        await this.init();
+        
+        const url = `${this.baseURL}${endpoint}`;
         const config = {
             headers: this.getHeaders(options.requireAuth !== false),
             ...options,
@@ -76,6 +66,7 @@ class APIClient {
 
         try {
             console.log(`API Request: ${config.method || 'GET'} ${url}`);
+            console.log(`[DEBUG] Using baseURL: ${this.baseURL}`);
             
             const response = await fetch(url, config);
             
@@ -117,9 +108,7 @@ class APIClient {
     }
 
     async getCurrentUser() {
-        const user = await this.request('/users/me');
-        console.log('📥 getCurrentUser response:', user);
-        return user;
+        return this.request('/users/me');
     }
 
     async updateCurrentUser(userData) {
@@ -169,13 +158,10 @@ class APIClient {
     }
 
     async createTask(taskData) {
-        console.log('🔄 API: Creating task with data:', taskData);
-        const result = await this.request('/tasks/', {
+        return this.request('/tasks/', {
             method: 'POST',
             body: JSON.stringify(taskData),
         });
-        console.log('✅ API: Task created successfully:', result);
-        return result;
     }
 
     async updateTask(taskId, taskData) {
@@ -209,32 +195,6 @@ class APIClient {
     async getUsers() {
         return this.request('/users/');
     }
-
-    async getUser(userId) {
-        return this.request(`/users/${userId}`);
-    }
-
-    async createUser(userData) {
-        // Use register endpoint but from admin context
-        return this.request('/auth/register', {
-            method: 'POST',
-            body: JSON.stringify(userData),
-            requireAuth: true, // Admin creating user
-        });
-    }
-
-    async updateUser(userId, userData) {
-        return this.request(`/users/${userId}`, {
-            method: 'PUT',
-            body: JSON.stringify(userData),
-        });
-    }
-
-    async deleteUser(userId) {
-        return this.request(`/users/${userId}`, {
-            method: 'DELETE',
-        });
-    }
 }
 
 // Custom Error Class
@@ -250,59 +210,25 @@ class APIError extends Error {
 // Global API instance
 const api = new APIClient();
 
-// Make APIError globally available
-window.APIError = APIError;
-
 // Utility Functions
 function handleAPIError(error, fallbackMessage = 'Đã xảy ra lỗi') {
     console.error('API Error:', error);
-
+    
     if (error instanceof APIError) {
         if (error.status === 401) {
-            // Check if we're already on login page
-            const isLoginPage = window.location.pathname.includes('login.html');
-            
-            if (isLoginPage) {
-                // We're on login page, this is a login failure
-                // Return error message instead of redirecting
-                return error.message || 'Tên đăng nhập hoặc mật khẩu không đúng';
-            } else {
-                // We're on another page, token expired - redirect to login
-                localStorage.removeItem('access_token');
-                window.location.href = 'login.html';
-                return 'Phiên đăng nhập đã hết hạn';
-            }
+            // Unauthorized - redirect to login
+            localStorage.removeItem('access_token');
+            window.location.href = 'login.html';
+            return;
         }
-        
-        if (error.status === 403) {
-            // Forbidden - Account locked/inactive
-            console.log('🚫 Account is locked or inactive');
-            return error.message || 'Tài khoản của bạn đã bị khóa';
-        }
-        
         return error.message;
     }
-
+    
     return fallbackMessage;
 }
 
 function showError(element, message) {
     if (element) {
-        // If no message, hide the element
-        if (!message || message.trim() === '') {
-            hideError(element);
-            return;
-        }
-        
-        // Reset any custom styling
-        element.style.backgroundColor = '';
-        element.style.color = '';
-        element.style.border = '';
-        element.style.padding = '';
-        element.style.borderRadius = '';
-        element.innerHTML = ''; // Clear any HTML content
-        
-        // Set text message and show
         element.textContent = message;
         element.classList.remove('hidden');
     }
@@ -310,18 +236,7 @@ function showError(element, message) {
 
 function hideError(element) {
     if (element) {
-        // Clear content
         element.textContent = '';
-        element.innerHTML = '';
-        
-        // Reset any custom styling
-        element.style.backgroundColor = '';
-        element.style.color = '';
-        element.style.border = '';
-        element.style.padding = '';
-        element.style.borderRadius = '';
-        
-        // Hide element
         element.classList.add('hidden');
     }
 }

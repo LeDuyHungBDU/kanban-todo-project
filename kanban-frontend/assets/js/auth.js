@@ -1,5 +1,4 @@
 // Authentication Manager
-// Authentication Manager
 class AuthManager {
     constructor() {
         this.initializeAuth();
@@ -67,51 +66,17 @@ class AuthManager {
 
             // Call login API
             const response = await api.login(username, password);
-            console.log('🔐 Login response:', response);
-            console.log('👤 User info:', response.user);
-            console.log('👤 User role:', response.user?.role);
             
             // Store token and user info
             api.setToken(response.access_token);
             localStorage.setItem('user_info', JSON.stringify(response.user));
-            console.log('💾 Stored user info:', localStorage.getItem('user_info'));
             
             // Redirect to dashboard
             window.location.href = 'index.html';
             
         } catch (error) {
-            console.error('❌ Login error:', error);
-            console.log('Error type:', error.constructor.name);
-            console.log('Error status:', error.status);
-            
             const message = handleAPIError(error, 'Đăng nhập thất bại');
-            console.log('Error message to display:', message);
-            
-            // Special handling for locked accounts (403)
-            if (error instanceof window.APIError && error.status === 403) {
-                console.log('🔒 Showing locked account error');
-                // Show the error element
-                errorElement.classList.remove('hidden');
-                
-                // Set special locked account styling
-                errorElement.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span style="font-size: 20px;">🔒</span>
-                        <div>
-                            <strong>Tài khoản đã bị khóa</strong><br>
-                            <small>${message}</small>
-                        </div>
-                    </div>
-                `;
-                errorElement.style.backgroundColor = '#fff3cd';
-                errorElement.style.color = '#856404';
-                errorElement.style.border = '1px solid #ffc107';
-                errorElement.style.padding = '12px';
-                errorElement.style.borderRadius = '4px';
-            } else {
-                console.log('❌ Showing standard error with showError()');
-                showError(errorElement, message);
-            }
+            showError(errorElement, message);
         } finally {
             // Reset loading state
             hideLoading(loadingElement);
@@ -247,36 +212,7 @@ class AuthManager {
     }
 }
 
-// Initialize authentication when DOM and config are loaded
-let authConfigReady = false;
-let authDomReady = false;
-
-function initializeAuth() {
-    if (!authConfigReady || !authDomReady) {
-        return;
-    }
-    console.log('🔐 Initializing AuthManager with config:', { API_URL: window.ENV?.API_URL });
+// Initialize authentication when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
     window.authManager = new AuthManager();
-}
-
-// Wait for config
-window.addEventListener('configLoaded', () => {
-    console.log('✅ Config loaded for auth');
-    authConfigReady = true;
-    initializeAuth();
 });
-
-// Wait for DOM
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        authDomReady = true;
-        initializeAuth();
-    });
-} else {
-    authDomReady = true;
-    // Check if config already loaded
-    if (window.ENV && window.ENV.API_URL) {
-        authConfigReady = true;
-    }
-    initializeAuth();
-}

@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kanban Board - TODO App</title>
-    <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
@@ -14,7 +13,6 @@
             <h1>Kanban TODO</h1>
             <div class="user-info">
                 <span>Xin chào, <span id="currentUser">User</span></span>
-                <button id="manageUsersBtn" class="btn btn-outline hidden">👥 Manage Users</button>
                 <button id="profileBtn" class="btn btn-outline">Profile</button>
                 <button id="logoutBtn" class="btn btn-outline">Đăng xuất</button>
             </div>
@@ -49,13 +47,7 @@
         <!-- Kanban Board -->
         <div id="kanbanBoard" class="kanban-board hidden">
             <div class="board-header">
-                <div class="board-info">
-                    <div class="board-title-row">
-                        <h2 id="boardTitle">Board Title</h2>
-                        <span id="boardVisibilityBadge" class="board-visibility-badge">Public</span>
-                    </div>
-                    <p id="boardDescriptionDisplay" class="board-description"></p>
-                </div>
+                <h2 id="boardTitle">Board Title</h2>
                 <div class="board-actions">
                     <button id="editBoardBtn" class="btn btn-secondary">Chỉnh sửa</button>
                     <button id="deleteBoardBtn" class="btn btn-danger">Xóa Board</button>
@@ -158,8 +150,8 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="boardDescriptionInput">Mô tả:</label>
-                    <textarea id="boardDescriptionInput" rows="3"></textarea>
+                    <label for="boardDescription">Mô tả:</label>
+                    <textarea id="boardDescription" rows="3"></textarea>
                 </div>
                 
                 <div class="form-group">
@@ -230,12 +222,9 @@
     </div>
     
     <!-- Scripts -->
-    <!-- Load config from config.json -->
     <script src="assets/js/config-loader.js"></script>
-    <script src="assets/js/store.js"></script>
     <script src="assets/js/api.js"></script>
     <script src="assets/js/auth.js"></script>
-    <script src="assets/js/kanban.js"></script>
-    <script type="module" src="assets/js/app.js"></script>
+    <script src="assets/js/app.js"></script>
 </body>
 </html>
