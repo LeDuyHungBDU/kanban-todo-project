@@ -19,7 +19,7 @@ class Settings(BaseSettings):
         "http://localhost:8080",
         "http://127.0.0.1:8080",
         # Production - Vercel
-        "https://kanban-todo-project.vercel.app",
+        "https://*.vercel.app",
         # Note: All Vercel preview deployments (*.vercel.app) 
         # are handled by allow_origin_regex in main.py
     ]
@@ -31,6 +31,6 @@ class Settings(BaseSettings):
 
 
     class Config:
-        env_file = ".env"
+        env_file = "kanban-todo-api/.env"
 
 settings = Settings()
